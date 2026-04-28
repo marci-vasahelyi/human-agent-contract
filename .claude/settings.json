@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gd=\"$(git rev-parse --git-dir 2>/dev/null)\"; gc=\"$(git rev-parse --git-common-dir 2>/dev/null)\"; if [[ -n \"$gd\" && -n \"$gc\" && \"$(cd \"$gd\" && pwd)\" != \"$(cd \"$gc\" && pwd)\" ]]; then exit 0; fi; printf '%s\\n' '{\"decision\":\"block\",\"reason\":\"Not in a worktree — call EnterWorktree first.\"}'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); cmd=$(echo \"$input\" | jq -r '.tool_input.command // \"\"' 2>/dev/null); if echo \"$cmd\" | grep -Eq 'git[[:space:]]+add\\b' && echo \"$cmd\" | grep -Eq -- '(-f\\b|--force\\b)' && echo \"$cmd\" | grep -Fq '.claude/plans'; then printf '%s\\n' '{\"decision\":\"block\",\"reason\":\".claude/plans/ is local-only. Never force-add it. The plan is your scratchpad, not PR content.\"}'; fi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git push*)",
+            "command": "printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Push detected. Run /review + /babysit-pr + /diagnose. Skip a tool only if it literally does not apply.\"}}'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); echo \"$input\" | grep -Eq '\"stop_hook_active\"[[:space:]]*:[[:space:]]*true' && exit 0; case \"$PWD\" in */.claude/worktrees/*) ;; *) exit 0 ;; esac; printf '%s\\n' '{\"decision\":\"block\",\"reason\":\"Before stopping: any committed work without a PR? Open a draft PR. Pushed since last triad? Run /review + /babysit-pr + /diagnose. About to ask a low-stakes workflow question? Make the call yourself.\"}'"
+          }
+        ]
+      }
+    ]
+  }
+}

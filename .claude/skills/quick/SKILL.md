@@ -32,7 +32,7 @@ If unsure, use `/pickup`. The cost of using `/pickup` for a trivial fix is one e
 2. **Make the one-line change.** Run the project's typecheck, lint, and test commands if the file is in a tested module.
 3. **Commit + push** with a tight conventional-commit message (`type: description`).
 4. **Open a non-draft PR** with a one-paragraph PR body: what changed, why. **No Uncertainty Log, no Self-reflection, no plan.**
-5. **`/review` and `/babysit-pr` still apply** — the contract's pre-human-surface rule doesn't get bypassed by `/quick`. Only the plan / Gate 1 / Uncertainty Log ceremony is skipped.
+5. **`/post-push` still applies** — the contract's pre-human-surface rule doesn't get bypassed by `/quick`. The Stop hook still enforces post-push, and `/post-push` runs `/review` + `/diagnose` and schedules `/babysit-pr`. Only the plan / Gate 1 / Uncertainty Log ceremony is skipped.
 6. Tell the user one line: *"Quick PR open — [link]. One-line fix: <description>."*
 
 ## What's intentionally missing
@@ -43,6 +43,6 @@ If unsure, use `/pickup`. The cost of using `/pickup` for a trivial fix is one e
 
 ## Rules
 
-- **`/quick` doesn't skip CI or `/review`.** The pre-human-surface rule from AGENTS.md still fires. CI green, `/review` clean, `/diagnose` clean — same bar as any other PR before merge. The shortcut is on *planning*, not *verification*.
+- **`/quick` doesn't skip CI or `/post-push`.** The pre-human-surface rule from AGENTS.md still fires. CI green, `/review` clean, `/diagnose` clean — same bar as any other PR before merge. The shortcut is on *planning*, not *verification*.
 - **If a `/quick` PR draws review comments that aren't trivial nits**, the original judgment was wrong — the change wasn't actually quick. Pivot to the `/babysit-pr` flow normally; don't try to defend the `/quick` framing.
 - **Hard boundaries still apply.** No merging to `main` (human only). Same as ever.

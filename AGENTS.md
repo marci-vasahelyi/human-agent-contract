@@ -8,20 +8,31 @@
 
 **Verification is non-negotiable.** Before any push: run the project's typecheck, lint, and test commands. For runtime-affecting changes, boot the relevant stack and exercise the flow. Quietly. If you genuinely can't verify something, that becomes an Uncertainty Log entry on the PR.
 
-**After every push, run `/review` + `/babysit-pr` + `/diagnose`.** All three are silent when clean — the human only sees them when they surface a real issue. Skip a tool only when it literally doesn't apply (no PR yet → skip `/babysit-pr`).
+**After every push, run `/post-push`.** Enforced, not advised. A Stop hook should deterministically block the turn if a `git push` happened with no subsequent `/post-push` — the agent must not be able to quietly skip it. `/post-push` ensures a PR exists, ensures a single recurring `/babysit-pr` loop is scheduled for that PR (idempotent — check the cron list before adding), and spawns `/review` + `/diagnose` as parallel subagents on every push. Silent when clean. `/babysit-pr` should not self-schedule — competing crons are how this workflow rots.
 
-**Mode routing** (first message of a new session only):
+**Two operating modes — cooperative is the default; autonomous is opt-in.**
+
+- **Cooperative mode** is silent. Only structural guardrails fire (force-push block, plans-folder protection, destructive-op block). The human is in the loop turn-by-turn; the agent asks before non-trivial decisions, doesn't push without confirmation, no Uncertainty Log workflow.
+- **Autonomous mode** turns on the decide-don't-ask contract above: prefer decisions over questions, log non-obvious calls to `.claude/uncertainties/<topic>.md`, push without confirmation when verified, run `/post-push` after every push (enforced). The worktree guard, push reminder, and Stop checklists all engage.
+
+Mode is per-checkout (`.claude/.autonomous` = `on`/`off`) with optional per-session override (`.claude/.autonomous.d/<session_id>`). First session in a fresh checkout asks once and persists the answer. Toggle later with `/mode on|off|session on|session off|session clear|reset`. Mode-switch takes effect on the next turn — hooks re-read state on every fire.
+
+**Bias toward fitting work into what's already there.** Before adding a new file, module, or abstraction, ask: *"would this fit in ~30 lines in files I already touched?"* If yes, do that. Three similar lines beat a premature abstraction. New surface area costs the human more attention to review than a slightly less elegant local change.
+
+**There is no such thing as a "pre-existing failure."** CI passes on main. If CI fails on your branch, either your change broke it or your local setup is stale — investigate both. Never write "these are pre-existing", "existed on main too", or "not caused by my changes" as justification for stopping. Fix it or escalate with a specific reason.
+
+**Mode routing** (autonomous mode only — first message of a new session):
 
 | First message | Mode | Action |
 | --- | --- | --- |
-| Task description / "build X" / "fix Y" / Figma URL | Implementation | invoke `/pickup` |
+| Task description / "build X" / "fix Y" / Figma URL | Implementation | invoke `/implement` (or `/pickup`) |
 | PR URL + review feedback | Babysit | invoke `/babysit-pr` |
 | Empty / "hey" / "I'm lost" | Conversation | morning briefing inline |
 | Question / strategy / "what do you think" / ambiguous | Conversation | dialogue, no skill |
 
-**Conversation mode** is the default. Be a sharp-thinking partner — push back, propose, sketch options. No PR, no Uncertainty Log.
+In cooperative mode, no auto-invocation — the agent waits for the human to direct.
 
-**Transitions are announced, not asked.** When the user signals "ok do it," say one short line — *"Got it — kicking off `/pickup`."* — and go.
+**Transitions are announced, not asked.** When the user signals "ok do it," say one short line — *"Got it — kicking off `/implement`."* — and go.
 
 **Hard boundaries** (require explicit approval):
 

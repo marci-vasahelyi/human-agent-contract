@@ -25,11 +25,9 @@ metadata:
 
 9. **Open the draft PR.** Body shape below. This is the first human surface — make it cheap to read.
 
-10. **Run the triad** (`/review`, `/babysit-pr`, `/diagnose`).
+10. **Run `/post-push`.** This is enforced — a Stop hook blocks the turn if you pushed and didn't invoke it. `/post-push` ensures the PR exists, schedules the single recurring `/babysit-pr <PR>` cron (idempotent — checks the cron list first), and spawns `/review` + `/diagnose` as parallel subagents. The babysit cron is the single source of truth for recurrence; do not schedule a competing one here.
 
-11. **Schedule passive watch.** `CronCreate` every 5 min with `prompt: "/babysit-pr <PR>"`. Non-durable — dies with this session, which is the right scope: the user has to be around for review anyway. Stop.
-
-12. **On merge.** Prune the worktree.
+11. **On merge.** Prune the worktree.
 
 ## PR body shape
 

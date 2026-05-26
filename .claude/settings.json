@@ -28,7 +28,7 @@
           {
             "type": "command",
             "if": "Bash(git push*)",
-            "command": "printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Push detected. Run /review + /babysit-pr + /diagnose. Skip a tool only if it literally does not apply.\"}}'"
+            "command": "printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Push detected. Run /post-push next — it ensures the PR exists, schedules a single recurring /babysit-pr loop, and spawns /review + /diagnose as parallel subagents. The Stop hook will block the turn if you skip /post-push.\"}}'"
           }
         ]
       }
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "input=$(cat); echo \"$input\" | grep -Eq '\"stop_hook_active\"[[:space:]]*:[[:space:]]*true' && exit 0; case \"$PWD\" in */.claude/worktrees/*) ;; *) exit 0 ;; esac; printf '%s\\n' '{\"decision\":\"block\",\"reason\":\"Before stopping: any committed work without a PR? Open a draft PR. Pushed since last triad? Run /review + /babysit-pr + /diagnose. About to ask a low-stakes workflow question? Make the call yourself.\"}'"
+            "command": "input=$(cat); echo \"$input\" | grep -Eq '\"stop_hook_active\"[[:space:]]*:[[:space:]]*true' && exit 0; case \"$PWD\" in */.claude/worktrees/*) ;; *) exit 0 ;; esac; printf '%s\\n' '{\"decision\":\"block\",\"reason\":\"Before stopping: any committed work without a PR? Open a draft PR. Pushed since last /post-push? Run /post-push. About to ask a low-stakes workflow question? Make the call yourself.\"}'"
           }
         ]
       }

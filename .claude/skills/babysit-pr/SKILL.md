@@ -19,6 +19,16 @@ If no PR number is given, use the current branch's open PR.
 
 Per the Agent/Human Contract in `AGENTS.md`: the human's cognitive capacity is the scarce resource. Do not interrupt for every comment. Triage, fix, reply, resolve — by yourself. Only surface when genuinely needed, and when you do, batch everything into one message framed as concrete choices ("A or B?"), not open-ended ("what do you think?").
 
+**Keep looping until the PR is truly clean.** Exit only when: CI green + 0 unresolved threads + no merge conflicts + review not blocking.
+
+## There is no such thing as a "pre-existing failure"
+
+CI passes on main. If CI fails on your branch, either your change broke it or your local setup is stale. Investigate both. **Never** write "these are pre-existing", "existed on main too", or "not caused by my changes" as justification for stopping. Fix it or escalate to the user with a specific reason — not a hand-wave.
+
+## Subagent return protocol
+
+Any parallel subagent you spawn (the first-iteration triad, delegated research, anything multi-step) must return a typed status as the first line per the protocol in `AGENTS.md` — `DONE`, `DONE_WITH_CONCERNS`, `NEEDS_CONTEXT`, or `BLOCKED`. Include the addendum in every brief. Free-form prose makes the controller guess intent.
+
 **Keep looping until the PR is truly clean.** Exit only when: CI green + 0 unresolved threads + no conflicts + `reviewDecision` not blocking (APPROVED, `null`, or a stale bot review you've pinged/surfaced). Don't exit after one pass. Don't walk off to other work while comments are open.
 
 ## Loop
@@ -120,20 +130,17 @@ If after step 6 there are items in the "surface at gate" bucket, or CI is genuin
 
 Then stop and wait for the user's reply. When they respond, apply decisions and resume the loop.
 
-### 10. Wait for CI and loop — re-poll *both* CI and review comments
+### 10. Return — do not self-schedule
 
-After pushing, wait for CI to re-run. **Continuity is mandatory** — before returning control to the user, you MUST schedule the next iteration so the loop survives the conversation pause:
+After one pass (CI poll + triage + any fix push), return. The recurring `/loop <interval> /babysit-pr <PR>` cron created by `/post-push` will fire again on its next interval. **Do not self-schedule from inside babysit** — that creates competing crons that quietly multiply.
 
-- **Long wait (CI ≥ 5min)** → `ScheduleWakeup` for the expected completion time, with `prompt: "/babysit-pr <PR url>"`. Cheaper than polling.
-- **Short wait or unknown duration** → `/loop 2m /babysit-pr <PR>` for true continuous polling. More resilient if you don't know when CI finishes.
+If babysit was triggered manually (no `/post-push` cron exists) and the PR is not clean yet, surface that to the user explicitly — they can re-run `/post-push` to start the cron, or invoke `/babysit-pr` again manually. Do not silently hand back.
 
-**Never end a turn with a pending CI run and no scheduled re-invocation.** That breaks the contract — the user should not have to remember to ping you. If you can't schedule (no tool available, hitting clamps), say so explicitly so the user knows the loop is dead and they need to re-invoke manually.
-
-When CI is in, go back to step 2 (CI status) **AND step 5 (review comments)** — reviewers (especially bots like coderabbitai) frequently leave new comments after a fix push, on the changes themselves. *Do not* declare the PR clean from CI alone — always re-poll comments first. The PR is only clean when CI is green AND no unresolved review threads remain on the latest commit.
+When the cron fires again, re-poll **both** CI and review comments — reviewers (especially bots like coderabbitai) frequently leave new comments after a fix push. Do not declare the PR clean from CI alone.
 
 ## Exit — ready-to-merge summary
 
-When all CI passes, no unresolved comments, no conflicts: before telling the user "done," ensure the PR description is in its final two-section shape per `/pickup` (*What this changes* + *Uncertainty Log*). Trim or remove Uncertainty Log entries that are no longer load-bearing.
+When all CI passes, no unresolved comments, no conflicts: before telling the user "done," ensure the PR description is in its final two-section shape per `/implement` (*What this changes* + *Uncertainty Log*). Trim or remove Uncertainty Log entries that are no longer load-bearing.
 
 Then one short message to the user:
 > "PR #XXX is clean — CI green, N reviewers approved. Ready for merge."
